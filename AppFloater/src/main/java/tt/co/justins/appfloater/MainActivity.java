@@ -30,7 +30,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import android.net.Uri;
+import android.os.Build;
+import android.provider.Settings;
+
 public class MainActivity extends AppCompatActivity {
+    public static final int PERMISSION_REQ_CODE = 1234;
+    public static final int OVERLAY_PERMISSION_REQ_CODE = 1235;
+
+    String[] perms = {
+            "android.permission.READ_EXTERNAL_STORAGE",
+            "android.permission.WRITE_EXTERNAL_STORAGE"
+    };
+
     FloatService mService;
     boolean mbound = false;
 
@@ -41,6 +53,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        checkPerms();
+
         setContentView(R.layout.activity_main);
 
         Intent intent = new Intent(MainActivity.this, FloatService.class);
@@ -80,6 +95,35 @@ public class MainActivity extends AppCompatActivity {
         });
 
         mPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+    }
+
+    public void checkPerms() {
+        // Checking if device version > 22 and we need to use new permission model
+        if(Build.VERSION.SDK_INT>Build.VERSION_CODES.LOLLIPOP_MR1) {
+            // Checking if we can draw window overlay
+            if (!Settings.canDrawOverlays(this) && BuildConfig.BUILD_TYPE.contentEquals("debug")) {
+                // Requesting permission for window overlay(needed for all react-native apps)
+                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:" + getPackageName()));
+                startActivityForResult(intent, OVERLAY_PERMISSION_REQ_CODE);
+            }
+            for(String perm : perms){
+                // Checking each persmission and if denied then requesting permissions
+                if(checkSelfPermission(perm) == PackageManager.PERMISSION_DENIED){
+                    requestPermissions(perms, PERMISSION_REQ_CODE);
+                    break;
+                }
+            }
+        }
+    }
+
+    // Window overlay permission intent result
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == OVERLAY_PERMISSION_REQ_CODE && BuildConfig.BUILD_TYPE.contentEquals("debug")) {
+            checkPerms();
+        }
     }
 
     @Override

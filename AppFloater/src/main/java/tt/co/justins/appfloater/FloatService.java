@@ -196,7 +196,7 @@ public class FloatService extends Service {
     private void setWindowParams(WindowManager.LayoutParams params, int x, int y) {
         params.height = WindowManager.LayoutParams.WRAP_CONTENT;
         params.width = WindowManager.LayoutParams.WRAP_CONTENT;
-        params.type = WindowManager.LayoutParams.TYPE_PHONE;
+        params.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
         params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
         params.format = PixelFormat.TRANSLUCENT;
         params.gravity = Gravity.TOP | Gravity.LEFT;
