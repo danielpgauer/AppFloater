@@ -34,13 +34,12 @@ import java.util.Set;
 @TargetApi(11)
 public class FloatService extends Service {
 
+    ImageView iconView = null;
     List<ImageView> viewList = new ArrayList<ImageView>();
     WindowManager windowManager;
     PackageManager packageManager;
 
     Binder binder = new FloatBinder();
-
-    SharedPreferences mPreferences;
 
     class IconHolder {
         public ImageView view;
@@ -77,14 +76,12 @@ public class FloatService extends Service {
         super.onCreate();
         windowManager = (WindowManager) getSystemService(WINDOW_SERVICE);
         packageManager = getPackageManager();
-        mPreferences = getSharedPreferences("appfloat.prefs", MODE_PRIVATE);
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         if(intent == null) {
             Log.d("AppFloat", "Service started with null intent");
-            floatSavedApps();
         } else {
             Log.d("AppFloat", "Service started with intent");
             Bundle bundle = intent.getExtras();
@@ -96,34 +93,12 @@ public class FloatService extends Service {
         return START_STICKY;
     }
 
-    private Set<String> getPrefPackageList() {
-        Set<String> packageNames = new HashSet<String>();
-        packageNames = mPreferences.getStringSet("packageNames", packageNames);
-        return packageNames;
-    }
-
-    private void addToPrefPackageList(String packageName) {
-        if(packageName == null)
-            return;
-
-        Set<String> oldPackageNameList = getPrefPackageList();
-        Set<String> newPackageNameList = new HashSet<String>(oldPackageNameList);
-
-        newPackageNameList.add(packageName);
-
-        SharedPreferences.Editor editor = mPreferences.edit();
-        editor.putStringSet("packageNames", newPackageNameList);
-        editor.commit();
-        Log.d("AppFloat", newPackageNameList.size() + " package names in saved preferences");
-    }
-
     private void addIconToScreen(final String packageName, int resourceId, int x, int y) {
-        if(viewList.size() >= 5) {
+        if(iconView != null) {
             return;
         }
 
-        final ImageView iconView = new ImageView(this);
-        viewList.add(iconView);
+        iconView = new ImageView(this);
 
         Drawable draw = getIcon(packageName, resourceId);
         iconView.setImageDrawable(draw);
@@ -201,7 +176,7 @@ public class FloatService extends Service {
         params.format = PixelFormat.TRANSLUCENT;
         params.gravity = Gravity.TOP | Gravity.LEFT;
         if(x < 0 || y < 0) {
-            params.y = dpToPx(100) * viewList.size();
+            params.y = dpToPx(100);
         } else {
             params.x = (int) x;
             params.y = (int) y;
@@ -269,13 +244,10 @@ public class FloatService extends Service {
      * Public binding methods used by attached application
      */
 
-    public void updateIconStatus(int statusId) {
-        updateIconStatus(statusId, 0);
-    }
 
-    public void updateIconStatus(int statusId, int iconArrayIndex) {
+    public void updateIconStatus(int statusId) {
         Drawable statusIcon;
-        IconHolder holder = (IconHolder) viewList.get(iconArrayIndex).getTag();
+        IconHolder holder = (IconHolder) iconView.getTag();
 
         Log.d("AppFloat", "updateIcon position: " + statusId);
         switch(statusId) {
@@ -319,35 +291,13 @@ public class FloatService extends Service {
         addIconToScreen(packageName, resourceId, -1, -1);
     }
 
-    public void floatSavedApps() {
-        Set<String> packageNames = getPrefPackageList();
-        for(String packageName : packageNames) {
-            addIconToScreen(packageName, 0, -1, -1);
-            //TODO add a way to save resource IDs
-        }
-    }
 
     public void removeIconsFromScreen() {
-        for(ImageView view : viewList ) {
-            windowManager.removeView(view);
+        if (iconView != null) {
+            windowManager.removeView(iconView);
+            iconView = null;
         }
-        viewList.clear();
         //onDestroy();
-    }
-
-    public void saveIconsToPref() {
-        for(ImageView view : viewList) {
-            IconHolder holder = (IconHolder) view.getTag();
-            addToPrefPackageList(holder.packageName);
-            holder.x_pos = view.getX();
-            holder.y_pos = view.getY();
-        }
-    }
-
-    public void clearPrefPackageList() {
-        SharedPreferences.Editor editor = mPreferences.edit();
-        editor.remove("packageNames");
-        editor.commit();
     }
 
     @Override

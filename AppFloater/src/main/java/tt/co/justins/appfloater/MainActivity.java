@@ -47,7 +47,6 @@ public class MainActivity extends AppCompatActivity {
     boolean mbound = false;
 
     SharedPreferences mPreferences;
-    Set<String> packageNameSet;
     List<String> appList;
 
     @Override
@@ -75,22 +74,21 @@ public class MainActivity extends AppCompatActivity {
         });
 
         appList = getAppList();
-        packageNameSet = new HashSet<String>();
 
         ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
         List<ActivityManager.RunningAppProcessInfo> rAppList = am.getRunningAppProcesses();
 
-        //ArrayAdapter adapter = new ArrayAdapter(this, android.R.layout.simple_list_item_1, rAppList);
         myArrayAdapter adapter = new myArrayAdapter(this, R.layout.list_row, R.id.rowText, appList);
 
         ListView listview = (ListView) findViewById(R.id.listView);
         listview.setAdapter(adapter);
 
+        final String packageName = getApplicationContext().getPackageName();
+
         listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                floatApp(appList.get(position));
-                packageNameSet.add(appList.get(position));
+                floatApp(packageName);
             }
         });
 
@@ -130,16 +128,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onStop() {
         super.onStop();
 
-        boolean savedApps = false;
-        savedApps = mPreferences.getBoolean("pref_save", savedApps);
-
         if(mbound) {
-            if (savedApps) {
-                Log.d("AppFloater", "Clearing pref list");
-                mService.clearPrefPackageList();
-                Log.d("AppFloater", "Saving icons to prefs");
-                mService.saveIconsToPref();
-            }
         } else {
             Log.d("AppFloater", "onStop called, but service isn't bound");
         }
@@ -149,7 +138,9 @@ public class MainActivity extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d("AppFloater", "Activity onDestroy called");
+
         if(mbound) {
+            mService.removeIconsFromScreen();
             Log.d("AppFloater", "Unbinding from service");
             unbindService(mConnection);
             mbound = false;
@@ -162,16 +153,6 @@ public class MainActivity extends AppCompatActivity {
             Log.d("AppFloater", "Connected to service");
             mService = ((FloatService.FloatBinder) service).getService();
             mbound = true;
-
-            boolean savedApps = false;
-            savedApps = mPreferences.getBoolean("pref_save", savedApps);
-
-            if (savedApps) {
-                Log.d("AppFloater", "Floating saved preference apps");
-                mService.floatSavedApps();
-            } else {
-                Log.d("AppFloater", "Not floating saved preference apps");
-            }
         }
 
         @Override
