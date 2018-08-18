@@ -2,6 +2,7 @@ package tt.co.justins.appfloater;
 
 import android.annotation.TargetApi;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -39,6 +40,8 @@ public class FloatService extends Service {
     PackageManager packageManager;
 
     Binder binder = new FloatBinder();
+
+   
 
     class IconHolder {
         public ImageView view;
@@ -79,16 +82,7 @@ public class FloatService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if(intent == null) {
-            Log.d("AppFloat", "Service started with null intent");
-        } else {
-            Log.d("AppFloat", "Service started with intent");
-            Bundle bundle = intent.getExtras();
-            String packageName = bundle.getString("appPackage");
-            int resourceId = bundle.getInt("resId");
-
-            floatApp(packageName, resourceId);
-        }
+        Log.d("AppFloat", "Service started with null intent");
         return START_STICKY;
     }
 
