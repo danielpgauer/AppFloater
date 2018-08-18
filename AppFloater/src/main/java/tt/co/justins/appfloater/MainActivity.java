@@ -46,12 +46,13 @@ public class MainActivity extends AppCompatActivity {
     FloatService mService;
     boolean mbound = false;
 
-    SharedPreferences mPreferences;
-    List<String> appList;
+    boolean isFloating = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        Log.d("AppFloater", "onCreate");
 
         checkPerms();
 
@@ -60,39 +61,26 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(MainActivity.this, FloatService.class);
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
 
-        Button stopButton = (Button) findViewById(R.id.stop);
-        stopButton.setOnClickListener(new View.OnClickListener() {
+        final Button startStopButton = (Button) findViewById(R.id.startStopButton);
+        startStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if(mbound) {
                     Log.d("AppFloater", "Calling remove icons on service");
-                    mService.removeIconsFromScreen();
+                    if (isFloating) {
+                        isFloating = false;
+                        startStopButton.setText("Start");
+                        mService.removeIconsFromScreen();
+                    } else {
+                        isFloating = true;
+                        startStopButton.setText("Stop");
+                        floatApp();
+                    }
                 } else {
                     Log.d("AppFloater", "Service isn't bound, can't call remove icons");
                 }
             }
         });
-
-        appList = getAppList();
-
-        ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-        List<ActivityManager.RunningAppProcessInfo> rAppList = am.getRunningAppProcesses();
-
-        myArrayAdapter adapter = new myArrayAdapter(this, R.layout.list_row, R.id.rowText, appList);
-
-        ListView listview = (ListView) findViewById(R.id.listView);
-        listview.setAdapter(adapter);
-
-        final String packageName = getApplicationContext().getPackageName();
-
-        listview.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                floatApp(packageName);
-            }
-        });
-
-        mPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
     }
 
     public void checkPerms() {
@@ -140,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d("AppFloater", "Activity onDestroy called");
 
         if(mbound) {
-            mService.removeIconsFromScreen();
+            //mService.removeIconsFromScreen();
             Log.d("AppFloater", "Unbinding from service");
             unbindService(mConnection);
             mbound = false;
@@ -162,60 +150,9 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void floatApp(String packageName) {
-        floatApp(packageName, 0);
-    }
-
-    private void floatApp(String packageName, int resourceId) {
+    private void floatApp() {
         if(mbound) {
-            mService.floatApp(packageName, resourceId);
+            mService.floatApp(BuildConfig.APPLICATION_ID, 0);
         }
-    }
-
-    private List<String> getAppList() {
-        PackageManager pm = getPackageManager();
-        // List<PackageInfo> appList = pm.getInstalledPackages(PackageManager.GET_ACTIVITIES);
-        List<ApplicationInfo> appList = pm.getInstalledApplications(PackageManager.GET_META_DATA);
-        List list = new ArrayList();
-
-        for(ApplicationInfo item : appList) {
-            if((item.flags & ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 1 || (item.flags & ApplicationInfo.FLAG_SYSTEM) == 0)
-                //list.add(pm.getApplicationLabel(item));
-                list.add(item.packageName);
-        }
-
-        return list;
-    }
-
-    private byte[] encodeResourceToByteArray () {
-        Bitmap bmp = BitmapFactory.decodeResource(getResources(), R.drawable.ic_launcher);
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        bmp.compress(Bitmap.CompressFormat.PNG, 100, stream);
-        final byte[] byteArray = stream.toByteArray();
-        return byteArray;
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        switch (item.getItemId()) {
-            case R.id.action_settings:
-                Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-                startActivity(intent);
-                return true;
-            case R.id.about:
-                return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 }

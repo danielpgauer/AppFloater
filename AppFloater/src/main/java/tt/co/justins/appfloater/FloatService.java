@@ -35,7 +35,6 @@ import java.util.Set;
 public class FloatService extends Service {
 
     ImageView iconView = null;
-    List<ImageView> viewList = new ArrayList<ImageView>();
     WindowManager windowManager;
     PackageManager packageManager;
 
@@ -91,6 +90,12 @@ public class FloatService extends Service {
             floatApp(packageName, resourceId);
         }
         return START_STICKY;
+    }
+
+    @Override
+    public void onTaskRemoved (Intent rootIntent) {
+        Log.d("AppFloat", "onTaskRemoved");
+        removeIconsFromScreen();
     }
 
     private void addIconToScreen(final String packageName, int resourceId, int x, int y) {
@@ -162,16 +167,26 @@ public class FloatService extends Service {
     }
 
     private void startAppActivity(String packageName) {
+        /*
         Intent intent = packageManager.getLaunchIntentForPackage(packageName);
             if(intent != null) {
                     startActivity(intent);
             }
+         */
+        Intent intent = new Intent(this, MainActivity.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK); // You need this if starting
+        //  the activity from a service
+        intent.setAction(Intent.ACTION_MAIN);
+        intent.addCategory(Intent.CATEGORY_LAUNCHER);
+        startActivity(intent);
     }
 
     private void setWindowParams(WindowManager.LayoutParams params, int x, int y) {
         params.height = WindowManager.LayoutParams.WRAP_CONTENT;
         params.width = WindowManager.LayoutParams.WRAP_CONTENT;
-        params.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+        params.type = Build.VERSION.SDK_INT > 25
+            ? WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            : WindowManager.LayoutParams.TYPE_PHONE;
         params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
         params.format = PixelFormat.TRANSLUCENT;
         params.gravity = Gravity.TOP | Gravity.LEFT;
@@ -302,6 +317,7 @@ public class FloatService extends Service {
 
     @Override
     public void onDestroy() {
+        Log.v("AppFloat", "destroy svc");
         super.onDestroy();
     }
 }
