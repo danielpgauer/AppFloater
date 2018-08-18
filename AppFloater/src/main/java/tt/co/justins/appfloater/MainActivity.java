@@ -55,24 +55,27 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        FloatService.create(this, new IServiceCreated() {
+        final Button startStopButton = (Button) findViewById(R.id.startStopButton);
+        FloatService.create(this, new IFloatService() {
             @Override
             public void created(FloatService service) {
                 mService = service;
                 Log.v("AppFloater", "svc created");
             }
+
+            @Override
+            public void onShowHide(boolean show) {
+                startStopButton.setText(show ? "Stop" : "Start");
+            }
         });
 
 
-        final Button startStopButton = (Button) findViewById(R.id.startStopButton);
         startStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 if (mService.isFloating()) {
-                    startStopButton.setText("Start");
                     mService.hide();
                 } else {
-                    startStopButton.setText("Stop");
                     mService.show();
                 }
             }

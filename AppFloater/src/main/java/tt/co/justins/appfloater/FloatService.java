@@ -46,11 +46,11 @@ public class FloatService extends Service {
 
     static FloatService mService;
     static boolean mbound = false;
-    static boolean isFloating = false;
+    public static boolean isFloating = false;
     static Context context;
-    static IServiceCreated callback;
+    static IFloatService callback;
 
-    public static void create(Context context, IServiceCreated callback) {
+    public static void create(Context context, IFloatService callback) {
         FloatService.callback = callback;
         FloatService.context = context;
         Intent intent = new Intent(context, FloatService.class);
@@ -59,7 +59,7 @@ public class FloatService extends Service {
         context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
     }
 
-    public boolean isFloating() {
+    public static boolean isFloating() {
         return isFloating;
     }
 
@@ -67,6 +67,7 @@ public class FloatService extends Service {
         if(mbound) {
             isFloating = true;
             mService.floatApp(BuildConfig.APPLICATION_ID, 0);
+            callback.onShowHide(true);
         }
     }
 
@@ -74,6 +75,7 @@ public class FloatService extends Service {
         if(mbound) {
             isFloating = false;
             mService.removeIconsFromScreen();
+            callback.onShowHide(false);
         }
     }
 
@@ -89,6 +91,7 @@ public class FloatService extends Service {
             mService = ((FloatService.FloatBinder) service).getService();
             mbound = true;
             callback.created(mService);
+            callback.onShowHide(isFloating);
         }
 
         @Override
