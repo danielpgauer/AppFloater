@@ -2,8 +2,10 @@ package tt.co.justins.appfloater;
 
 import android.annotation.TargetApi;
 import android.app.Service;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -32,6 +34,7 @@ import java.util.Set;
  * Created by Justin on 10/31/13.
  */
 
+
 @TargetApi(11)
 public class FloatService extends Service {
 
@@ -41,7 +44,59 @@ public class FloatService extends Service {
 
     Binder binder = new FloatBinder();
 
-   
+    static FloatService mService;
+    static boolean mbound = false;
+    static boolean isFloating = false;
+    static Context context;
+    static IServiceCreated callback;
+
+    public static void create(Context context, IServiceCreated callback) {
+        FloatService.callback = callback;
+        FloatService.context = context;
+        Intent intent = new Intent(context, FloatService.class);
+        context.startService(intent);
+
+        context.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+    }
+
+    public boolean isFloating() {
+        return isFloating;
+    }
+
+    public void show() {
+        if(mbound) {
+            isFloating = true;
+            mService.floatApp(BuildConfig.APPLICATION_ID, 0);
+        }
+    }
+
+    public void hide() {
+        if(mbound) {
+            isFloating = false;
+            mService.removeIconsFromScreen();
+        }
+    }
+
+    public void unbind() {
+        context.unbindService(mConnection);
+        mbound = false;
+    }
+
+    private static ServiceConnection mConnection =  new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            Log.d("AppFloater", "Connected to service");
+            mService = ((FloatService.FloatBinder) service).getService();
+            mbound = true;
+            callback.created(mService);
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            Log.d("AppFloat", "Disconnected from service");
+            mbound = false;
+        }
+    };
 
     class IconHolder {
         public ImageView view;

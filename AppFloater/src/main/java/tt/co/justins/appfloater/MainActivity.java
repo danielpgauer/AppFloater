@@ -44,9 +44,6 @@ public class MainActivity extends AppCompatActivity {
     };
 
     FloatService mService;
-    boolean mbound = false;
-
-    boolean isFloating = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,26 +55,25 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        Intent intent = new Intent(MainActivity.this, FloatService.class);
-        bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+        FloatService.create(this, new IServiceCreated() {
+            @Override
+            public void created(FloatService service) {
+                mService = service;
+                Log.v("AppFloater", "svc created");
+            }
+        });
+
 
         final Button startStopButton = (Button) findViewById(R.id.startStopButton);
         startStopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(mbound) {
-                    Log.d("AppFloater", "Calling remove icons on service");
-                    if (isFloating) {
-                        isFloating = false;
-                        startStopButton.setText("Start");
-                        mService.removeIconsFromScreen();
-                    } else {
-                        isFloating = true;
-                        startStopButton.setText("Stop");
-                        floatApp();
-                    }
+                if (mService.isFloating()) {
+                    startStopButton.setText("Start");
+                    mService.hide();
                 } else {
-                    Log.d("AppFloater", "Service isn't bound, can't call remove icons");
+                    startStopButton.setText("Stop");
+                    mService.show();
                 }
             }
         });
@@ -115,11 +111,6 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-
-        if(mbound) {
-        } else {
-            Log.d("AppFloater", "onStop called, but service isn't bound");
-        }
     }
 
     @Override
@@ -127,32 +118,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         Log.d("AppFloater", "Activity onDestroy called");
 
-        if(mbound) {
-            //mService.removeIconsFromScreen();
-            Log.d("AppFloater", "Unbinding from service");
-            unbindService(mConnection);
-            mbound = false;
-        }
+        mService.unbind();
     }
 
-    private ServiceConnection mConnection =  new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.d("AppFloater", "Connected to service");
-            mService = ((FloatService.FloatBinder) service).getService();
-            mbound = true;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            Log.d("AppFloat", "Disconnected from service");
-            mbound = false;
-        }
-    };
-
-    private void floatApp() {
-        if(mbound) {
-            mService.floatApp(BuildConfig.APPLICATION_ID, 0);
-        }
-    }
 }
